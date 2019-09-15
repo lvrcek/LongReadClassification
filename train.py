@@ -1,15 +1,12 @@
 import torch
-import torchvision
 import model
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
 import shutil
-from PIL import Image
 import torch.optim as optim
 import torch.nn as nn
 from CoverageDataset import CoverageDataset
-# import torch.nn.functional as F
 
 REGULAR = "./original_data/regular"
 REPEAT = "./original_data/repeat"
