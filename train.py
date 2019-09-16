@@ -1,20 +1,27 @@
-import torch
-import model
-import torchvision.transforms as transforms
-from torch.utils.data import Dataset, DataLoader, random_split
 import os
 import shutil
+from time import time
+import torch
+from torch.utils.data import DataLoader, random_split
 import torch.optim as optim
 import torch.nn as nn
+import torchvision.transforms as transforms
+
+import model
 from CoverageDataset import CoverageDataset
+from visualizer import draw_training_curve
+
 
 REGULAR = "./original_data/regular"
 REPEAT = "./original_data/repeat"
 CHIMERIC = "./original_data/chimeric"
 NON_CHIMERIC = "./original_data/non-chimeric"
 
+EPOCHS = 5
+BATCH = 8
 
 def main():
+    start_time = time()
     if not os.path.isdir(NON_CHIMERIC):
         os.mkdir(NON_CHIMERIC)
         for file in os.listdir(REGULAR):
@@ -33,18 +40,26 @@ def main():
     train_size = round(num_samples * 0.75)
     test_size = num_samples - train_size
     ds_train, ds_test = random_split(ds, [train_size, test_size])
-    dl_train = DataLoader(ds_train, batch_size=4, shuffle=True, num_workers=0)
-    dl_test = DataLoader(ds_test, batch_size=4, shuffle=False, num_workers=0)
+    dl_train = DataLoader(ds_train, batch_size=BATCH, shuffle=True, num_workers=2)
+    dl_test = DataLoader(ds_test, batch_size=BATCH, shuffle=False, num_workers=2)
 
     net = model.AlexNet()
+    net.train()
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    history = []
 
-    for epoch in range(2):
+    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu') # Use cuda if possible
+    device = torch.device('cpu') # Force using cpu
+
+    print(f"Using device: {device}")
+    net.to(device)
+    for epoch in range(EPOCHS):
         running_loss = 0.0
+        total_loss = 0.0
         for i, data in enumerate(dl_train, 0):
-            inputs = data['image']
-            labels = data['label']
+            inputs = data['image'].to(device)
+            labels = data['label'].to(device)
             optimizer.zero_grad()
 
             outputs = net(inputs)
@@ -53,15 +68,20 @@ def main():
             optimizer.step()
 
             running_loss += loss.item()
+            total_loss += loss.item()
             if i % 100 == 99:
-                print('[%d, %5d] loss: %.3f' %
-                      (epoch + 1, i + 1, running_loss / 2000))
+                print("Epoch: %2d, Step: %5d -> Loss: %.5f" %
+                      (epoch + 1, i + 1, running_loss / 100))
                 running_loss = 0.0
+        history.append((epoch + 1, total_loss))
 
-    print('Finished Training')
+    training_time = time()
+    print(f"Finished Training. Time for training: {training_time - start_time}")
+    draw_training_curve(history)
 
     correct = 0
     total = 0
+    net.eval()
     with torch.no_grad():
         for data in dl_test:
             images = data['image']
@@ -71,7 +91,9 @@ def main():
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    print(f"Accuracy of the network on the test set: {100 * correct / total}")
+    evaluation_time = time()
+    print(f"Accuracy of the network on the test set: {100 * correct / total}. "
+          f"Evalutaion time: {evaluation_time - training_time}")
 
 
 if __name__ == '__main__':

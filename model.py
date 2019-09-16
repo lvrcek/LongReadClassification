@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torchvision.models as models
 
 class AlexNet(nn.Module):
 
@@ -39,3 +40,12 @@ class AlexNet(nn.Module):
         x = self.classifier(x)
         return x
 
+
+class ResNet(nn.Module):
+    def __init__(self, num_classes=2):
+        super(ResNet, self).__init__()
+        self.model = models.resnet50()
+        self.model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+    def forward(self, x):
+        return self.model(x)

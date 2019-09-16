@@ -36,6 +36,3 @@ class CoverageDataset(Dataset):
                 image = self.transform(image)
             sample = {'image': image, 'label': label}
             return sample
-
-
-
