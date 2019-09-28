@@ -1,6 +1,8 @@
 import os
 import shutil
+from tqdm import tqdm
 from time import time
+import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
 import torch.optim as optim
@@ -9,19 +11,23 @@ import torchvision.transforms as transforms
 
 import model
 from CoverageDataset import CoverageDataset
-from visualizer import draw_training_curve
-
+import visualizer
 
 REGULAR = "./original_data/regular"
 REPEAT = "./original_data/repeat"
 CHIMERIC = "./original_data/chimeric"
 NON_CHIMERIC = "./original_data/non-chimeric"
 
-EPOCHS = 5
-BATCH = 8
+EPOCHS = 15
+BATCH = 4
+PARAM_PATH = 'params.pt'
 
 def main():
+
     start_time = time()
+    torch.manual_seed(0)
+    np.random.seed(0)
+
     if not os.path.isdir(NON_CHIMERIC):
         os.mkdir(NON_CHIMERIC)
         for file in os.listdir(REGULAR):
@@ -44,20 +50,25 @@ def main():
     dl_test = DataLoader(ds_test, batch_size=BATCH, shuffle=False, num_workers=2)
 
     net = model.AlexNet()
-    net.train()
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    history = []
-
-    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu') # Use cuda if possible
-    device = torch.device('cpu') # Force using cpu
-
+    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')  # Use cuda if possible
+    device = torch.device('cpu')  # Force using cpu
     print(f"Using device: {device}")
     net.to(device)
+    criterion = nn.CrossEntropyLoss()
+    # optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+    # optimizer = optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))
+    optimizer = optim.RMSprop(net.parameters(), lr=1e-4)
+    history_train = []
+    history_test = []
+    history_acc = []
+
     for epoch in range(EPOCHS):
         running_loss = 0.0
         total_loss = 0.0
-        for i, data in enumerate(dl_train, 0):
+        iter = 0
+        for data in tqdm(dl_train, desc=f"Epoch {epoch+ 1}"):
+            net.train()
+            iter += 1
             inputs = data['image'].to(device)
             labels = data['label'].to(device)
             optimizer.zero_grad()
@@ -69,31 +80,61 @@ def main():
 
             running_loss += loss.item()
             total_loss += loss.item()
-            if i % 100 == 99:
-                print("Epoch: %2d, Step: %5d -> Loss: %.5f" %
-                      (epoch + 1, i + 1, running_loss / 100))
-                running_loss = 0.0
-        history.append((epoch + 1, total_loss))
+            #if i % 100 == 99:
+            #    print("Epoch: %2d, Step: %5d -> Loss: %.5f" %
+            #          (epoch + 1, i + 1, running_loss / 100))
+            #    running_loss = 0.0
+        print(f"Epoch {epoch + 1} train loss: {total_loss / iter}")
+        history_train.append((epoch + 1, total_loss / iter))
+
+        total_loss = 0.0
+        iter = 0
+        total = 0
+        correct = 0
+        for data in dl_test:
+            net.eval()
+            iter += 1
+            images = data['image'].to(device)
+            labels = data['label'].to(device)
+            outputs = net(images)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+
+        accuracy = 100* correct / total
+        print(f"Epoch {epoch + 1}: Test loss = {total_loss / iter}, Accuracy = {accuracy}")
+        history_test.append((epoch + 1, total_loss / iter))
+        history_acc.append((epoch+1, accuracy))
+
+        if epoch == 0 or history_acc[-1] > history_acc[-2]:
+            torch.save(net.state_dict(), PARAM_PATH)
+
+
 
     training_time = time()
-    print(f"Finished Training. Time for training: {training_time - start_time}")
-    draw_training_curve(history)
+    print(f"Finished Training. Training time: {training_time - start_time} s")
+    visualizer.draw_training_curve(history_train, history_test)
+    visualizer.draw_accuracy_curve(history_acc)
 
     correct = 0
     total = 0
+    net.load_state_dict(torch.load(PARAM_PATH))
     net.eval()
     with torch.no_grad():
         for data in dl_test:
-            images = data['image']
-            labels = data['label']
+            images = data['image'].to(device)
+            labels = data['label'].to(device)
             outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
     evaluation_time = time()
-    print(f"Accuracy of the network on the test set: {100 * correct / total}. "
-          f"Evalutaion time: {evaluation_time - training_time}")
+    print(f"Accuracy of the network on the test set: {100 * correct / total} \%. "
+          f"Evalutaion time: {evaluation_time - training_time} s")
 
 
 if __name__ == '__main__':
