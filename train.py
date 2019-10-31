@@ -22,6 +22,11 @@ EPOCHS = 15
 BATCH = 4
 PARAM_PATH = 'models/params.pt'
 
+types = {
+    0: 'RP',
+    1: 'CH',
+    2: 'NM',
+}
 
 def main():
     start_time = time()
@@ -125,20 +130,33 @@ def main():
     guess_repeat = []
     guess_chim = []
     guess_normal = []
-    with torch.no_grad():
+    with torch.no_grad(), open('wrong.txt', 'w') as f:
         for data in dl_test:
             images = data['image'].to(device)
             labels = data['label'].to(device)
+            paths = data['path'][0]
+            # print(paths)
+            # print(type(paths))
             outputs = net(images)
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+
             if labels == 0:
                 guess_repeat.append(predicted.item())
+                if predicted.item() != 0:
+                    output = paths[:-4] + types[int(labels)] + '_' + types[predicted.item()] + paths[-4:] + '\n'
+                    f.write(output)
             elif labels == 1:
                 guess_chim.append(predicted.item())
+                if predicted.item() != 1:
+                    output = paths[:-4] + types[int(labels)] + '_' + types[predicted.item()] + paths[-4:] + '\n'
+                    f.write(output)
             else:
                 guess_normal.append(predicted.item())
+                if predicted.item() != 2:
+                    output = paths[:-4] + types[int(labels)] + '_' + types[predicted.item()] + paths[-4:] + '\n'
+                    f.write(output)
 
     evaluation_time = time()
     print(f"Accuracy of the network on the test set: {100 * correct / total}%. ")
