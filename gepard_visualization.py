@@ -45,7 +45,7 @@ with open(wrong) as f:
         pileogram = os.path.join(READS, type_dict[mis_type[:2]], species+'_'+read_id+'.png')
         read = os.path.join(READS, type_dict[mis_type[:2]]+'_reads', species+'_'+read_id+'.fasta')
         outfile = species + '_' + read_id + '_' + mis_type + '.png'
-        command = GEPARD_CMD + ' -seq1 ' + read + ' -seq2 ' + reference + ' -matrix '
+        command = GEPARD_CMD + ' -seq1 ' + reference + ' -seq2 ' + read + ' -matrix '
         command += '/home/lovro/Software/gepard/src/matrices/edna.mat -outfile ' + os.path.join(DOT_DIR, outfile)
         os.system(command)
         os.system('cp ' + pileogram + ' ' + os.path.join(PILE_DIR, outfile))
