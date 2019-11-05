@@ -13,9 +13,9 @@ import model
 from CoverageDataset import CoverageDataset
 import visualizer
 
-NORMAL = "./subsampled/normal"
-REPEATS = "./subsampled/repeats"
-CHIMERIC = "./subsampled/chimeric"
+NORMAL = "./data/normal"
+REPEATS = "./data/repeats"
+CHIMERIC = "./data/chimeric"
 # NON_CHIMERIC = "./original_data/non-chimeric"
 
 EPOCHS = 15
@@ -32,7 +32,7 @@ def main():
     start_time = time()
     torch.manual_seed(0)
     np.random.seed(0)
-    mode = 'eval'
+    mode = 'train'
 
     #    if not os.path.isdir(NON_CHIMERIC):
     #        os.mkdir(NON_CHIMERIC)
