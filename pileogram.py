@@ -3,7 +3,8 @@ from PIL import Image
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
 
-class CoverageDataset(Dataset):
+
+class PileogramDataset(Dataset):
 
     def __init__(self, dir_repeats, dir_chimeric, dir_normal, transform=None):
         self.path_list = []
@@ -22,7 +23,6 @@ class CoverageDataset(Dataset):
 
     def __len__(self):
         return 2 * len(self.path_list)
-        # return len(self.path_list)
 
     def __getitem__(self, idx):
         if idx < len(self.path_list):

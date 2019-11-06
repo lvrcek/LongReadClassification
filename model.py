@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torchvision.models as models
 
+
 class AlexNet(nn.Module):
 
     def __init__(self, num_classes):
@@ -34,7 +35,6 @@ class AlexNet(nn.Module):
             nn.Linear(4096, num_classes),
         )
 
-
     def forward(self, x):
         x = self.features(x)
         # x = self.avgpool(x)
@@ -44,10 +44,10 @@ class AlexNet(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, num_classes=2):
+    def __init__(self, num_classes):
         super(ResNet, self).__init__()
         self.model = models.resnet50()
-        self.model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.model.conv1 = nn.Conv2d(num_classes, 64, kernel_size=7, stride=2, padding=3, bias=False)
 
     def forward(self, x):
         return self.model(x)
