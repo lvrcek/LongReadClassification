@@ -47,7 +47,8 @@ class ResNet(nn.Module):
     def __init__(self, num_classes):
         super(ResNet, self).__init__()
         self.model = models.resnet50()
-        self.model.conv1 = nn.Conv2d(num_classes, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.fc = nn.Linear(512, num_classes)
 
     def forward(self, x):
         return self.model(x)

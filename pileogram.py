@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 
 class PileogramDataset(Dataset):
 
-    def __init__(self, dir_repeats, dir_chimeric, dir_normal, transform=None):
+    def __init__(self, dir_repeats, dir_chimeric, dir_normal, dir_junk, transform=None):
         self.path_list = []
         self.label_list = []
         self.transform = transform
@@ -20,9 +20,13 @@ class PileogramDataset(Dataset):
         for file in os.listdir(dir_normal):
             self.path_list.append(os.path.join(dir_normal, file))
             self.label_list.append(2)
+        for file in os.listdir(dir_junk):
+            self.path_list.append(os.path.join(dir_junk, file))
+            self.label_list.append(3)
 
     def __len__(self):
         return 2 * len(self.path_list)
+        # return len(self.path_list)
 
     def __getitem__(self, idx):
         if idx < len(self.path_list):

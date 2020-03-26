@@ -1,11 +1,11 @@
 from matplotlib import pyplot as plt
 
 
-def draw_training_curve(history_train, history_val):
+def draw_training_curve(history_train, history_test):
     plt.figure()
     epochs = [h[0] for h in history_train]
     loss_train = [h[1] for h in history_train]
-    loss_test = [h[1] for h in history_val]
+    loss_test = [h[1] for h in history_test]
     plt.plot(epochs, loss_train, label='train')
     plt.plot(epochs, loss_test, label='validation')
     plt.title("Model loss over epochs")
