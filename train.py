@@ -133,7 +133,7 @@ def main():
                     correct += (predicted == labels).sum().item()
 
             accuracy = 100 * correct / total
-            print(f"Epoch {epoch + 1}: Val loss = {total_loss / iteration}, Accuracy = {round(accuracy, 2)}")
+            print(f"Epoch {epoch + 1}: Val loss = {total_loss / iteration}, Accuracy = {round(accuracy, 2)}%")
             history_val.append((epoch + 1, total_loss / iteration))
             acc_valid.append((epoch + 1, accuracy))
 
