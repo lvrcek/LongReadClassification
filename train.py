@@ -44,8 +44,8 @@ def print_confusion(conf_rep, conf_chim, conf_norm, conf_junk):
 
 def main():
     start_time = time()
-    torch.manual_seed(0)
-    np.random.seed(0)
+    # torch.manual_seed(0)
+    # np.random.seed(0)
     mode = 'train'
     #############
     # mode = 'test'
@@ -75,8 +75,8 @@ def main():
     net.to(device)
     criterion = nn.CrossEntropyLoss()
     # optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    # optimizer = optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))
-    optimizer = optim.RMSprop(net.parameters(), lr=1e-4)
+    optimizer = optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))
+    # optimizer = optim.RMSprop(net.parameters(), lr=1e-4)
     history_train = []
     history_val = []
     acc_train = []

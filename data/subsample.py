@@ -38,11 +38,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--number', required=True, type=int,
         help="number of reads to be copied")
+    parser.add_argument('-s', '--seed', type=int,
+        help="seed for the random generator")
     parser.add_argument('-t', '--type', default='all',
         help="type of reads to be subsampled")
     args = parser.parse_args()
     subsampler = Subsampler(args.number, args.type)
+    seed = args.seed
     
     with subsampler:
-        random.seed(0)
+        if seed is not None:
+            random.seed(seed)  
         subsampler.run()
