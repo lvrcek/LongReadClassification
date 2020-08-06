@@ -13,7 +13,7 @@ def draw_training_curve(history_train, history_test):
     plt.ylabel("Loss")
     plt.legend()
     plt.savefig('loss.png')
-    plt.show()
+#    plt.show()
 
 
 def draw_accuracy_curve(acc_train, acc_valid):
@@ -28,4 +28,4 @@ def draw_accuracy_curve(acc_train, acc_valid):
     plt.ylabel("Accuracy")
     plt.legend()
     plt.savefig('accuracy.png')
-    plt.show()
+#    plt.show()

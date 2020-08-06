@@ -1,4 +1,4 @@
-from tqdm import tqdm
+#from tqdm import tqdm
 from time import time
 import numpy as np
 import torch
@@ -9,16 +9,21 @@ import torchvision.transforms as transforms
 
 import model
 from pileogram import PileogramDataset
-import visualizer
+#import visualizer
 
-REGULAR = "./data/regular"
-REPEATS = "./data/repetitive"
-CHIMERIC = "./data/chimeric"
-JUNK = "./data/junk"
+REGULAR_TRAIN = "./manual/regular"
+REPEATS_TRAIN = "./manual/repetitive"
+CHIMERIC_TRAIN = "./manual/chimeric"
+JUNK_TRAIN = "./manual/junk"
 
-EPOCHS = 10
-BATCH = 8
-PARAM_PATH = 'models/params_res18.pt'
+REGULAR_TEST = "./megan_test/regular"
+REPEATS_TEST = "./megan_test/repetitive"
+CHIMERIC_TEST = "./megan_test/chimeric"
+JUNK_TEST = "./megan_test/junk"
+
+EPOCHS = 30
+BATCH = 128
+PARAM_PATH = 'models/params_res18_man_ef.pt'
 
 types = {
     0: 'RP',
@@ -44,8 +49,8 @@ def print_confusion(conf_rep, conf_chim, conf_norm, conf_junk):
 
 def main():
     start_time = time()
-    torch.manual_seed(0)
-    np.random.seed(0)
+    torch.manual_seed(7)
+    #np.random.seed(0)
     mode = 'train'
     #############
     # mode = 'test'
@@ -57,13 +62,15 @@ def main():
         transforms.Normalize([0.5], [0.5])
     ])
 
-    ds = PileogramDataset(REPEATS, CHIMERIC, REGULAR, JUNK, transform=transform)
+    ds = PileogramDataset(REPEATS_TRAIN, CHIMERIC_TRAIN, REGULAR_TRAIN, JUNK_TRAIN, transform=transform)
     num_samples = len(ds)
-    val_size = test_size = round(num_samples * 0.2)
-    train_size = num_samples - val_size - test_size
-    ds_train, ds_val, ds_test = random_split(ds, [train_size, val_size, test_size])
+    val_size = round(num_samples * 0.2)
+    train_size = num_samples - val_size
+    ds_train, ds_val = random_split(ds, [train_size, val_size])
     dl_train = DataLoader(ds_train, batch_size=BATCH, shuffle=True, num_workers=2, pin_memory=True)
     dl_val = DataLoader(ds_val, batch_size=BATCH, shuffle=False, num_workers=2, pin_memory=True)
+
+    ds_test = PileogramDataset(REPEATS_TEST, CHIMERIC_TEST, REGULAR_TEST, JUNK_TEST, transform=transform)
     dl_test = DataLoader(ds_test, batch_size=1, shuffle=False, num_workers=2, pin_memory=True)
 
     net = model.ResNet18(num_classes=4)
@@ -75,8 +82,8 @@ def main():
     net.to(device)
     criterion = nn.CrossEntropyLoss()
     # optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    # optimizer = optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))
-    optimizer = optim.RMSprop(net.parameters(), lr=1e-4)
+    # optimizer = optim.Adam(net.parameters(), lr=3e-5, betas=(0.9, 0.999))
+    optimizer = optim.RMSprop(net.parameters(), lr=3e-5)
     history_train = []
     history_val = []
     acc_train = []
@@ -90,7 +97,7 @@ def main():
             correct = 0
             net.train()
 
-            for data in tqdm(dl_train, desc=f"Epoch {epoch + 1}", leave=True, ncols=100):
+            for data in dl_train:
                 iteration += 1
                 inputs = data['image'].to(device, non_blocking=True)
                 labels = data['label'].to(device, non_blocking=True)
@@ -110,7 +117,7 @@ def main():
             #          (epoch + 1, i + 1, running_loss / 100))
             #    running_loss = 0.0
             accuracy = 100*correct/total
-            tqdm.write(f"Epoch {epoch + 1} train loss: {total_loss / iteration}\tAccuracy: {round(accuracy, 2)}%")
+            print(f"Epoch {epoch + 1}:\tTrain loss = {total_loss / iteration}\tAccuracy = {round(accuracy, 2)}%")
             history_train.append((epoch + 1, total_loss / iteration))
             acc_train.append((epoch+1, accuracy))
 
@@ -133,7 +140,7 @@ def main():
                     correct += (predicted == labels).sum().item()
 
             accuracy = 100 * correct / total
-            print(f"Epoch {epoch + 1}: Val loss = {total_loss / iteration}, Accuracy = {round(accuracy, 2)}%")
+            print(f"Epoch {epoch + 1}:\tVal loss = {total_loss / iteration},\tAccuracy = {round(accuracy, 2)}%")
             history_val.append((epoch + 1, total_loss / iteration))
             acc_valid.append((epoch + 1, accuracy))
 
@@ -142,8 +149,8 @@ def main():
 
         training_time = time()
         print(f"Finished Training. Training time: {training_time - start_time} s")
-        visualizer.draw_training_curve(history_train, history_val)
-        visualizer.draw_accuracy_curve(acc_train, acc_valid)
+#        visualizer.draw_training_curve(history_train, history_val)
+#        visualizer.draw_accuracy_curve(acc_train, acc_valid)
 
     correct = 0
     total = 0
@@ -189,8 +196,8 @@ def main():
                     f.write(output)
 
     eval_time_end = time()
-    # print(f"Accuracy of the network on the test set: {100 * correct / total}%.")
-    # print(f"Evalutaion time: {eval_time_end - eval_time_start} s.")
+    print(f"Accuracy of the network on the test set: {100 * correct / total}%.")
+    print(f"Evalutaion time: {eval_time_end - eval_time_start} s.")
 
     conf_repeat = (sum([l == 0 for l in guess_repeat]), sum([l == 1 for l in guess_repeat]),
                    sum([l == 2 for l in guess_repeat]), sum([l == 3 for l in guess_repeat]))
