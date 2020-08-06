@@ -12,15 +12,20 @@ def draw_training_curve(history_train, history_test):
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()
-    plt.show()
+    plt.savefig('loss.png')
+#    plt.show()
 
 
-def draw_accuracy_curve(history_acc):
+def draw_accuracy_curve(acc_train, acc_valid):
     plt.figure()
-    epochs = [h[0] for h in history_acc]
-    acc = [h[1] for h in history_acc]
-    plt.plot(epochs, acc)
+    epochs = [h[0] for h in acc_train]
+    acc_train = [h[1] for h in acc_train]
+    acc_valid = [h[1] for h in acc_valid]
+    plt.plot(epochs, acc_train, label='train')
+    plt.plot(epochs, acc_valid, label='validation')
     plt.title("Model accuracy over epochs")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    plt.show()
+    plt.legend()
+    plt.savefig('accuracy.png')
+#    plt.show()

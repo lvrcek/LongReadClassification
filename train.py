@@ -1,6 +1,4 @@
-import os
-import shutil
-from tqdm import tqdm
+#from tqdm import tqdm
 from time import time
 import numpy as np
 import torch
@@ -10,17 +8,22 @@ import torch.nn as nn
 import torchvision.transforms as transforms
 
 import model
-from CoverageDataset import PileogramDataset
-import visualizer
+from pileogram import PileogramDataset
+#import visualizer
 
-REGULAR = "./data/regular"
-REPEATS = "./data/repetitive"
-CHIMERIC = "./data/chimeric"
-JUNK = "./data/junk"
+REGULAR_TRAIN = "./manual/regular"
+REPEATS_TRAIN = "./manual/repetitive"
+CHIMERIC_TRAIN = "./manual/chimeric"
+JUNK_TRAIN = "./manual/junk"
 
-EPOCHS = 5
-BATCH = 16
-PARAM_PATH = 'models/params.pt'
+REGULAR_TEST = "./megan_test/regular"
+REPEATS_TEST = "./megan_test/repetitive"
+CHIMERIC_TEST = "./megan_test/chimeric"
+JUNK_TEST = "./megan_test/junk"
+
+EPOCHS = 30
+BATCH = 128
+PARAM_PATH = 'models/params_res18_man_ef.pt'
 
 types = {
     0: 'RP',
@@ -46,48 +49,58 @@ def print_confusion(conf_rep, conf_chim, conf_norm, conf_junk):
 
 def main():
     start_time = time()
-    torch.manual_seed(0)
-    np.random.seed(0)
+    torch.manual_seed(7)
+    #np.random.seed(0)
     mode = 'train'
+    #############
+    # mode = 'test'
 
     transform = transforms.Compose([
         transforms.Grayscale(),
         transforms.Resize([224, 224]),
-        transforms.ToTensor()
+        transforms.ToTensor(),
+        transforms.Normalize([0.5], [0.5])
     ])
 
-    ds = PileogramDataset(REPEATS, CHIMERIC, REGULAR, JUNK, transform=transform)
+    ds = PileogramDataset(REPEATS_TRAIN, CHIMERIC_TRAIN, REGULAR_TRAIN, JUNK_TRAIN, transform=transform)
     num_samples = len(ds)
-    val_size = test_size = round(num_samples * 0.2)
-    train_size = num_samples - val_size - test_size
-    ds_train, ds_val, ds_test = random_split(ds, [train_size, val_size, test_size])
+    val_size = round(num_samples * 0.2)
+    train_size = num_samples - val_size
+    ds_train, ds_val = random_split(ds, [train_size, val_size])
     dl_train = DataLoader(ds_train, batch_size=BATCH, shuffle=True, num_workers=2, pin_memory=True)
     dl_val = DataLoader(ds_val, batch_size=BATCH, shuffle=False, num_workers=2, pin_memory=True)
+
+    ds_test = PileogramDataset(REPEATS_TEST, CHIMERIC_TEST, REGULAR_TEST, JUNK_TEST, transform=transform)
     dl_test = DataLoader(ds_test, batch_size=1, shuffle=False, num_workers=2, pin_memory=True)
 
-    net = model.ResNet(num_classes=4)
-    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')  # Use cuda if possible
-    device = torch.device('cpu')  # Force using cpu
+    net = model.ResNet18(num_classes=4)
+    # if device.type == 'cuda' and torch.cuda.device_count() > 1:
+    #     net = nn.DataParallel(net)
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')  # Use cuda if possible
+    # device = torch.device('cpu')  # Force using cpu
     print(f"Using device: {device}")
     net.to(device)
     criterion = nn.CrossEntropyLoss()
     # optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    # optimizer = optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))
-    optimizer = optim.RMSprop(net.parameters(), lr=1e-4)
+    # optimizer = optim.Adam(net.parameters(), lr=3e-5, betas=(0.9, 0.999))
+    optimizer = optim.RMSprop(net.parameters(), lr=3e-5)
     history_train = []
     history_val = []
-    history_acc = []
+    acc_train = []
+    acc_valid = []
 
     if mode == 'train':
         for epoch in range(EPOCHS):
             total_loss = 0.0
             iteration = 0
+            total = 0
+            correct = 0
             net.train()
 
-            for data in tqdm(dl_train, desc=f"Epoch {epoch + 1}", leave=True, ncols=100):
+            for data in dl_train:
                 iteration += 1
-                inputs = data['image'].to(device)
-                labels = data['label'].to(device)
+                inputs = data['image'].to(device, non_blocking=True)
+                labels = data['label'].to(device, non_blocking=True)
                 optimizer.zero_grad()
                 outputs = net(inputs)
                 loss = criterion(outputs, labels)
@@ -95,13 +108,18 @@ def main():
                 optimizer.step()
                 # running_loss += loss.item()
                 total_loss += loss.item()
+                total += labels.size(0)
+                _, predicted = torch.max(outputs.data, 1)
+                correct += (predicted == labels).sum().item()
 
             # if i % 100 == 99:
             #    print("Epoch: %2d, Step: %5d -> Loss: %.5f" %
             #          (epoch + 1, i + 1, running_loss / 100))
             #    running_loss = 0.0
-            tqdm.write(f"Epoch {epoch + 1} train loss: {total_loss / iteration}")
+            accuracy = 100*correct/total
+            print(f"Epoch {epoch + 1}:\tTrain loss = {total_loss / iteration}\tAccuracy = {round(accuracy, 2)}%")
             history_train.append((epoch + 1, total_loss / iteration))
+            acc_train.append((epoch+1, accuracy))
 
             total_loss = 0.0
             iteration = 0
@@ -122,17 +140,17 @@ def main():
                     correct += (predicted == labels).sum().item()
 
             accuracy = 100 * correct / total
-            print(f"Epoch {epoch + 1}: Val loss = {total_loss / iteration}, Accuracy = {accuracy}")
+            print(f"Epoch {epoch + 1}:\tVal loss = {total_loss / iteration},\tAccuracy = {round(accuracy, 2)}%")
             history_val.append((epoch + 1, total_loss / iteration))
-            history_acc.append((epoch + 1, accuracy))
+            acc_valid.append((epoch + 1, accuracy))
 
-            if epoch == 0 or history_acc[-1] > history_acc[-2]:
+            if epoch == 0 or acc_valid[-1] > max(acc_valid[:-1]):
                 torch.save(net.state_dict(), PARAM_PATH)
 
         training_time = time()
         print(f"Finished Training. Training time: {training_time - start_time} s")
-        visualizer.draw_training_curve(history_train, history_val)
-        visualizer.draw_accuracy_curve(history_acc)
+#        visualizer.draw_training_curve(history_train, history_val)
+#        visualizer.draw_accuracy_curve(acc_train, acc_valid)
 
     correct = 0
     total = 0
