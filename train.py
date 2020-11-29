@@ -1,4 +1,4 @@
-#from tqdm import tqdm
+# from tqdm import tqdm
 from time import time
 import numpy as np
 import torch
@@ -7,9 +7,9 @@ import torch.optim as optim
 import torch.nn as nn
 import torchvision.transforms as transforms
 
-import model
+import models
 from pileogram import PileogramDataset
-#import visualizer
+# import visualizer
 
 REGULAR_TRAIN = "./manual/regular"
 REPEATS_TRAIN = "./manual/repetitive"
@@ -23,7 +23,7 @@ JUNK_TEST = "./megan_test/junk"
 
 EPOCHS = 30
 BATCH = 128
-PARAM_PATH = 'models/params_res18_man_ef.pt'
+PARAM_PATH = 'trained_mnodels/params_res18_man_ef.pt'
 
 types = {
     0: 'RP',
@@ -73,7 +73,7 @@ def main():
     ds_test = PileogramDataset(REPEATS_TEST, CHIMERIC_TEST, REGULAR_TEST, JUNK_TEST, transform=transform)
     dl_test = DataLoader(ds_test, batch_size=1, shuffle=False, num_workers=2, pin_memory=True)
 
-    net = model.ResNet18(num_classes=4)
+    net = models.ResNet18(num_classes=4)
     # if device.type == 'cuda' and torch.cuda.device_count() > 1:
     #     net = nn.DataParallel(net)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')  # Use cuda if possible

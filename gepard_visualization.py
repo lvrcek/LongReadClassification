@@ -1,6 +1,8 @@
 import os
 import re
 
+"""This script is deprecated. It was used for automated visualization of mappings with Gepard."""
+
 GEPARD_CMD = 'java -cp /home/lovro/Software/gepard/Gepard-1.40.jar org.gepard.client.cmdline.CommandLine'
 REFERENCES = '/home/lovro/Data/Zymo/subsampled/references/Genomes/'
 READS = '/home/lovro/Data/Zymo/subsampled'
