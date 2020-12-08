@@ -291,9 +291,8 @@ class gan():
     def txt(self):
         pred_chimeric=self.c_name
         f=open("chimerics.txt","w+")
-        for node in pred_chimeric:
-            row='ERR2173373.'+str(node)+'\n '
-            f.write(row)
+        for read in pred_chimeric:
+            f.write(read+'\n')
         f.close()
 
     def run(self):
