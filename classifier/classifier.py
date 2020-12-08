@@ -245,8 +245,8 @@ class gan():
         self.discriminator = self.discriminator.to(device)
         
         if pretrained==True:
-            self.discriminator.load_state_dict(torch.load('discriminator_87.pth', map_location=lambda storage, loc: storage))
-            self.generator.load_state_dict(torch.load('generator_87.pth', map_location=lambda storage, loc: storage))
+            self.discriminator.load_state_dict(torch.load('discriminator_88.pth', map_location=lambda storage, loc: storage))
+            self.generator.load_state_dict(torch.load('generator_88.pth', map_location=lambda storage, loc: storage))
         
         self.optimizer_G = optim.Adam(self.generator.parameters(), lr=0.0001)
         self.optimizer_D = optim.Adam(self.discriminator.parameters(), lr=0.0001)
