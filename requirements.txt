@@ -44,7 +44,7 @@ numpy-base=1.19.2=py38hfa32c7d_0
 olefile=0.46=py_0
 openssl=1.1.1h=h7b6447c_0
 pcre=8.44=he6710b0_0
-pillow=8.0.1=py38he98fc37_0
+pillow=8.1.1
 pip=20.2.4=py38h06a4308_0
 pyparsing=2.4.7=py_0
 pyqt=5.9.2=py38h05f1152_4
